@@ -92,69 +92,35 @@ export default function Chatbox() {
         throw new Error("Failed to get response")
       }
 
-      // const reader = response.body?.getReader()
-      // if (!reader) {
-      //   throw new Error("No response body")
-      // }
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error("No response body")
+      }
 
-      const data = await response.json();
-      const reply = data.reply;
+      let assistantMessage = ""
+      const decoder = new TextDecoder()
 
-      const newAssistantMessage: Message = {
-        id: nanoid(),
-        role: "assistant",
-        content: reply,
-      };
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-      setMessages((prev) => [...prev, newAssistantMessage]);
+        const chunk = decoder.decode(value, { stream: true })
+        assistantMessage += chunk
+        setStreamingMessage(assistantMessage)
+      }
 
-      // let assistantMessage = ""
-      // const toolInvocations: Array<{ toolName: string; result?: any }> = []
-      // const decoder = new TextDecoder()
+      // After streaming ends
+      if (assistantMessage) {
+        const newAssistantMessage: Message = {
+          id: nanoid(),
+          role: "assistant",
+          content: assistantMessage,
+        }
+        setMessages((prev) => [...prev, newAssistantMessage])
+      }
 
-      // while (true) {
-      //   const { done, value } = await reader.read()
-      //   if (done) break
+      setStreamingMessage("")
 
-      //   const chunk = decoder.decode(value, { stream: true })
-      //   const lines = chunk.split("\n")
-
-      //   for (const line of lines) {
-      //     if (line.startsWith("0:")) {
-      //       try {
-      //         const data = JSON.parse(line.slice(2))
-      //         if (data.type === "text-delta") {
-      //           assistantMessage += data.textDelta
-      //           setStreamingMessage(assistantMessage)
-      //         } else if (data.type === "tool-call") {
-      //           toolInvocations.push({
-      //             toolName: data.toolName,
-      //           })
-      //         } else if (data.type === "tool-result") {
-      //           const lastTool = toolInvocations[toolInvocations.length - 1]
-      //           if (lastTool) {
-      //             lastTool.result = data.result
-      //           }
-      //         }
-      //       } catch {
-      //         // Ignore parsing errors
-      //       }
-      //     }
-      //   }
-      // }
-
-      // // Add the complete assistant message
-      // if (assistantMessage || toolInvocations.length > 0) {
-      //   const newAssistantMessage: Message = {
-      //     id: nanoid(),
-      //     role: "assistant",
-      //     content: assistantMessage,
-      //     ...(toolInvocations.length > 0 && { toolInvocations }),
-      //   }
-      //   setMessages((prev) => [...prev, newAssistantMessage])
-      // }
-
-      // setStreamingMessage("")
     } catch (error) {
       if (error instanceof Error && error.name !== "AbortError") {
         console.error("Chat error:", error)
@@ -217,69 +183,34 @@ export default function Chatbox() {
         throw new Error("Failed to get response")
       }
 
-      // const reader = response.body?.getReader()
-      // if (!reader) {
-      //   throw new Error("No response body")
-      // }
+      const reader = response.body?.getReader()
+      if (!reader) {
+        throw new Error("No response body")
+      }
 
-      const data = await response.json();
-      const reply = data.reply;
+      let assistantMessage = ""
+      const decoder = new TextDecoder()
 
-      const newAssistantMessage: Message = {
-        id: nanoid(),
-        role: "assistant",
-        content: reply,
-      };
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-      setMessages((prev) => [...prev, newAssistantMessage]);
+        const chunk = decoder.decode(value, { stream: true })
+        assistantMessage += chunk
+        setStreamingMessage(assistantMessage)
+      }
 
-      // let assistantMessage = ""
-      // const toolInvocations: Array<{ toolName: string; result?: any }> = []
-      // const decoder = new TextDecoder()
+      // After streaming ends
+      if (assistantMessage) {
+        const newAssistantMessage: Message = {
+          id: nanoid(),
+          role: "assistant",
+          content: assistantMessage,
+        }
+        setMessages((prev) => [...prev, newAssistantMessage])
+      }
 
-      // while (true) {
-      //   const { done, value } = await reader.read()
-      //   if (done) break
-
-      //   const chunk = decoder.decode(value, { stream: true })
-      //   const lines = chunk.split("\n")
-
-      //   for (const line of lines) {
-      //     if (line.startsWith("0:")) {
-      //       try {
-      //         const data = JSON.parse(line.slice(2))
-      //         if (data.type === "text-delta") {
-      //           assistantMessage += data.textDelta
-      //           setStreamingMessage(assistantMessage)
-      //         } else if (data.type === "tool-call") {
-      //           toolInvocations.push({
-      //             toolName: data.toolName,
-      //           })
-      //         } else if (data.type === "tool-result") {
-      //           const lastTool = toolInvocations[toolInvocations.length - 1]
-      //           if (lastTool) {
-      //             lastTool.result = data.result
-      //           }
-      //         }
-      //       } catch{
-      //         // Ignore parsing errors
-      //       }
-      //     }
-      //   }
-      // }
-
-      // // Add the complete assistant message
-      // if (assistantMessage || toolInvocations.length > 0) {
-      //   const newAssistantMessage: Message = {
-      //     id: nanoid(),
-      //     role: "assistant",
-      //     content: assistantMessage,
-      //     ...(toolInvocations.length > 0 && { toolInvocations }),
-      //   }
-      //   setMessages((prev) => [...prev, newAssistantMessage])
-      // }
-
-      // setStreamingMessage("")
+      setStreamingMessage("")
     } catch (error) {
       if (error instanceof Error && error.name !== "AbortError") {
         console.error("Chat error:", error)
