@@ -1,5 +1,3 @@
-import React from "react";
-import ChatPage from "./chat/page";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
