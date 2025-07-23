@@ -11,6 +11,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Loader2, Send, Square, RotateCcw, Trash2, User, Bot } from "lucide-react"
 import { nanoid } from "nanoid"
 import { ScrollAreaViewport } from "@radix-ui/react-scroll-area"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm";
 
 type Message = {
   id: string
@@ -238,7 +240,7 @@ export default function Chatbox() {
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="mx-auto h-12 w-12 mb-4 opacity-50" />
                   <p>Start a conversation with the Finsight!</p>
-                  <p className="text-sm mt-2">Try asking about company performance.</p>
+                  <p className="text-sm mt-2">Ex. How many new large deals did ServiceNow sign in the last quarter?</p>
                 </div>
               )}
 
@@ -265,7 +267,12 @@ export default function Chatbox() {
                       <div className="flex-1">
                         {message.toolInvocations && message.toolInvocations.length > 0 ? (
                           <div className="space-y-2">
-                            {message.content && <p className="whitespace-pre-wrap">{message.content}</p>}
+                            {message.content && 
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                              >
+                                {message.content}
+                              </ReactMarkdown>}
                             {message.toolInvocations.map((tool, index) => (
                               <div key={`${message.id}-${tool.toolName}-${index}`} className="bg-background/50 rounded p-2 text-sm">
                                 <div className="font-medium text-primary">🔧 {tool.toolName}</div>
@@ -280,7 +287,11 @@ export default function Chatbox() {
                             ))}
                           </div>
                         ) : (
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
                         )}
                       </div>
 
@@ -313,8 +324,12 @@ export default function Chatbox() {
                       <Bot className="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="max-w-[80%] bg-muted rounded-lg px-4 py-2">
-                    <p className="whitespace-pre-wrap">{streamingMessage}</p>
+                  <div className="message assistant max-w-[80%] bg-muted rounded-lg px-4 py-2">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                    >
+                      {streamingMessage}
+                    </ReactMarkdown>
                   </div>
                 </div>
               )}
