@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,50 +11,52 @@ import { Loader2, Send, Square, RotateCcw, Trash2, User, Bot } from "lucide-reac
 import { nanoid } from "nanoid"
 import { ScrollAreaViewport } from "@radix-ui/react-scroll-area"
 import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm";
-
-type Message = {
-  id: string
-  role: "user" | "assistant"
-  content: string
-  toolInvocations?: Array<{
-    toolName: string
-    result?: any
-  }>
-}
+import remarkGfm from "remark-gfm"
+import { useConversations, type Message } from "@/context/chat-context"
 
 export default function Chatbox() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const { currentConversation, currentConversationId, updateConversation, createNewConversation } = useConversations()
+
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [streamingMessage, setStreamingMessage] = useState("")
   const abortControllerRef = useRef<AbortController | null>(null)
-  const endRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const endRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const messages = currentConversation?.messages || []
 
   function usePrevious<T>(value: T): T | undefined {
-    const ref = useRef<T>(undefined);
+    const ref = useRef<T>(undefined)
     useEffect(() => {
-      ref.current = value;
-    }, [value]);
-    return ref.current;
+      ref.current = value
+    }, [value])
+    return ref.current
   }
 
-  const prevMessages = usePrevious(messages);
+  const prevMessages = usePrevious(messages)
 
   // Focus input and scroll to bottom when new message is added
   useEffect(() => {
-    const messageWasAdded =
-      prevMessages && messages.length > prevMessages.length;
+    const messageWasAdded = prevMessages && messages.length > prevMessages.length
 
     if (messageWasAdded) {
-      inputRef.current?.focus();
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
+      inputRef.current?.focus()
+      endRef.current?.scrollIntoView({ behavior: "smooth" })
     }
-  }, [messages, prevMessages]);
+  }, [messages, prevMessages])
+
+  // Auto-scroll when streaming
+  useEffect(() => {
+    if (streamingMessage) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [streamingMessage])
 
   const handleDelete = (id: string) => {
-    setMessages(messages.filter((message) => message.id !== id))
+    if (!currentConversationId) return
+    const updatedMessages = messages.filter((message) => message.id !== id)
+    updateConversation(currentConversationId, updatedMessages)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,13 +68,21 @@ export default function Chatbox() {
     setIsLoading(true)
     setStreamingMessage("")
 
+    // Create new conversation if none exists
+    let conversationId = currentConversationId
+    if (!conversationId) {
+      conversationId = createNewConversation()
+    }
+
     // Add user message
     const newUserMessage: Message = {
       id: nanoid(),
       role: "user",
       content: userMessage,
     }
-    setMessages((prev) => [...prev, newUserMessage])
+
+    const updatedMessages = [...messages, newUserMessage]
+    updateConversation(conversationId, updatedMessages)
 
     try {
       // Create abort controller for this request
@@ -85,7 +94,7 @@ export default function Chatbox() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...messages, newUserMessage].map(({ id, toolInvocations, ...msg }) => msg),
+          messages: updatedMessages.map(({ id, toolInvocations, ...msg }) => msg),
         }),
         signal: abortControllerRef.current.signal,
       })
@@ -118,11 +127,11 @@ export default function Chatbox() {
           role: "assistant",
           content: assistantMessage,
         }
-        setMessages((prev) => [...prev, newAssistantMessage])
+        const finalMessages = [...updatedMessages, newAssistantMessage]
+        updateConversation(conversationId, finalMessages)
       }
 
       setStreamingMessage("")
-
     } catch (error) {
       if (error instanceof Error && error.name !== "AbortError") {
         console.error("Chat error:", error)
@@ -131,7 +140,8 @@ export default function Chatbox() {
           role: "assistant",
           content: "Sorry, I encountered an error. Please try again.",
         }
-        setMessages((prev) => [...prev, errorMessage])
+        const finalMessages = [...updatedMessages, errorMessage]
+        updateConversation(conversationId, finalMessages)
       }
     } finally {
       setIsLoading(false)
@@ -152,7 +162,7 @@ export default function Chatbox() {
   }
 
   const reload = async () => {
-    if (messages.length === 0) return
+    if (!currentConversationId || messages.length === 0) return
 
     // Find the last user message
     const lastUserMessageIndex = messages.findLastIndex((msg) => msg.role === "user")
@@ -160,10 +170,9 @@ export default function Chatbox() {
 
     // Remove all messages after the last user message
     const messagesToKeep = messages.slice(0, lastUserMessageIndex + 1)
-    setMessages(messagesToKeep)
+    updateConversation(currentConversationId, messagesToKeep)
 
     // Re-trigger the API call with the last user message
-    //const lastUserMessage = messages[lastUserMessageIndex]
     setIsLoading(true)
     setStreamingMessage("")
 
@@ -209,7 +218,8 @@ export default function Chatbox() {
           role: "assistant",
           content: assistantMessage,
         }
-        setMessages((prev) => [...prev, newAssistantMessage])
+        const finalMessages = [...messagesToKeep, newAssistantMessage]
+        updateConversation(currentConversationId, finalMessages)
       }
 
       setStreamingMessage("")
@@ -221,7 +231,8 @@ export default function Chatbox() {
           role: "assistant",
           content: "Sorry, I encountered an error. Please try again.",
         }
-        setMessages((prev) => [...prev, errorMessage])
+        const finalMessages = [...messagesToKeep, errorMessage]
+        updateConversation(currentConversationId, finalMessages)
       }
     } finally {
       setIsLoading(false)
@@ -239,8 +250,8 @@ export default function Chatbox() {
               {messages.length === 0 && !streamingMessage && (
                 <div className="text-center text-muted-foreground py-8">
                   <Bot className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                  <p>Start a conversation with the Finsight!</p>
-                  <p className="text-sm mt-2">Ex. How many new large deals did ServiceNow sign in the last quarter?</p>
+                  <p>Start a conversation with the AI!</p>
+                  <p className="text-sm mt-2">Ask me anything or start with: "How can you help me today?"</p>
                 </div>
               )}
 
@@ -267,14 +278,14 @@ export default function Chatbox() {
                       <div className="flex-1">
                         {message.toolInvocations && message.toolInvocations.length > 0 ? (
                           <div className="space-y-2">
-                            {message.content && 
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                              >
-                                {message.content}
-                              </ReactMarkdown>}
+                            {message.content && (
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                            )}
                             {message.toolInvocations.map((tool, index) => (
-                              <div key={`${message.id}-${tool.toolName}-${index}`} className="bg-background/50 rounded p-2 text-sm">
+                              <div
+                                key={`${message.id}-${tool.toolName}-${index}`}
+                                className="bg-background/50 rounded p-2 text-sm"
+                              >
                                 <div className="font-medium text-primary">🔧 {tool.toolName}</div>
                                 {tool.result && (
                                   <div className="mt-1 text-muted-foreground">
@@ -287,11 +298,7 @@ export default function Chatbox() {
                             ))}
                           </div>
                         ) : (
-                          <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                          >
-                            {message.content}
-                          </ReactMarkdown>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                         )}
                       </div>
 
@@ -325,11 +332,7 @@ export default function Chatbox() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="message assistant max-w-[80%] bg-muted rounded-lg px-4 py-2">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                    >
-                      {streamingMessage}
-                    </ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{streamingMessage}</ReactMarkdown>
                   </div>
                 </div>
               )}

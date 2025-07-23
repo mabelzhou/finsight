@@ -1,138 +1,147 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode, useCallback, useMemo } from "react"
+import type React from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 import { nanoid } from "nanoid"
-import type { Message } from "ai"
+
+export type Message = {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  toolInvocations?: Array<{
+    toolName: string
+    result?: any
+  }>
+}
 
 export type Conversation = {
   id: string
   title: string
   messages: Message[]
-  lastMessage?: string
-  date: Date
-  messageCount: number
+  createdAt: Date
+  updatedAt: Date
 }
 
-type ChatContextType = {
+type ConversationContextType = {
   conversations: Conversation[]
-  activeConversationId: string | null
-  activeMessages: Message[]
-  setActiveConversationMessages: (messages: Message[]) => void
-  selectConversation: (id: string) => void
+  currentConversationId: string | null
+  currentConversation: Conversation | null
   createNewConversation: () => string
+  switchConversation: (id: string) => void
+  updateConversation: (id: string, messages: Message[]) => void
   deleteConversation: (id: string) => void
-  updateConversationTitle: (id: string, title: string) => void
+  generateTitle: (messages: Message[]) => string
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined)
+const ConversationContext = createContext<ConversationContextType | null>(null)
 
-export function ChatProvider({ children }: { children: ReactNode }) {
+export function useConversations() {
+  const context = useContext(ConversationContext)
+  if (!context) {
+    throw new Error("useConversations must be used within ConversationProvider")
+  }
+  return context
+}
+
+export function ConversationProvider({ children }: { children: React.ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
 
-  const activeConversation = useMemo(() => {
-    return activeConversationId ? conversations.find((c) => c.id === activeConversationId) || null : null
-  }, [conversations, activeConversationId])
-
-  const activeMessages = useMemo(() => {
-    return activeConversation?.messages || []
-  }, [activeConversation])
-
-  const setActiveConversationMessages = useCallback(
-    (messages: Message[]) => {
-      if (!activeConversationId) return
-
-      setConversations((prev) =>
-        prev.map((conv) => {
-          if (conv.id === activeConversationId) {
-            const lastUserMessage = messages.filter((m) => m.role === "user").pop()?.content as string
-
-            return {
-              ...conv,
-              messages,
-              lastMessage: lastUserMessage || conv.lastMessage,
-              messageCount: messages.length,
-            }
-          }
-          return conv
-        }),
-      )
-    },
-    [activeConversationId],
-  )
-
-  const selectConversation = useCallback((id: string) => {
-    setActiveConversationId(id)
+  // Load conversations from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("ai-conversations")
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setConversations(
+          parsed.map((conv: any) => ({
+            ...conv,
+            createdAt: new Date(conv.createdAt),
+            updatedAt: new Date(conv.updatedAt),
+          })),
+        )
+      } catch (error) {
+        console.error("Failed to load conversations:", error)
+      }
+    }
   }, [])
 
-  const createNewConversation = useCallback(() => {
+  // Save conversations to localStorage whenever they change
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem("ai-conversations", JSON.stringify(conversations))
+    }
+  }, [conversations])
+
+  const generateTitle = (messages: Message[]): string => {
+    const firstUserMessage = messages.find((m) => m.role === "user")
+    if (!firstUserMessage) return "New Chat"
+
+    // Take first 50 characters of the first user message
+    const title = firstUserMessage.content.slice(0, 50)
+    return title.length < firstUserMessage.content.length ? title + "..." : title
+  }
+
+  const createNewConversation = (): string => {
     const id = nanoid()
     const newConversation: Conversation = {
       id,
-      title: "New Conversation",
+      title: "New Chat",
       messages: [],
-      date: new Date(),
-      messageCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     }
 
     setConversations((prev) => [newConversation, ...prev])
-    setActiveConversationId(id)
+    setCurrentConversationId(id)
     return id
-  }, [])
+  }
 
-  const deleteConversation = useCallback(
-    (id: string) => {
-      setConversations((prev) => prev.filter((c) => c.id !== id))
+  const switchConversation = (id: string) => {
+    setCurrentConversationId(id)
+  }
 
-      if (activeConversationId === id) {
-        const remaining = conversations.filter((c) => c.id !== id)
-        setActiveConversationId(remaining.length > 0 ? remaining[0].id : null)
-      }
-    },
-    [conversations, activeConversationId],
-  )
-
-  const updateConversationTitle = useCallback((id: string, title: string) => {
+  const updateConversation = (id: string, messages: Message[]) => {
     setConversations((prev) =>
       prev.map((conv) => {
         if (conv.id === id) {
-          return { ...conv, title }
+          const title = messages.length > 0 ? generateTitle(messages) : "New Chat"
+          return {
+            ...conv,
+            messages,
+            title,
+            updatedAt: new Date(),
+          }
         }
         return conv
       }),
     )
-  }, [])
-
-  const contextValue = useMemo(
-    () => ({
-      conversations,
-      activeConversationId,
-      activeMessages,
-      setActiveConversationMessages,
-      selectConversation,
-      createNewConversation,
-      deleteConversation,
-      updateConversationTitle,
-    }),
-    [
-      conversations,
-      activeConversationId,
-      activeMessages,
-      setActiveConversationMessages,
-      selectConversation,
-      createNewConversation,
-      deleteConversation,
-      updateConversationTitle,
-    ],
-  )
-
-  return <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>
-}
-
-export function useChat() {
-  const context = useContext(ChatContext)
-  if (context === undefined) {
-    throw new Error("useChat must be used within a ChatProvider")
   }
-  return context
+
+  const deleteConversation = (id: string) => {
+    setConversations((prev) => prev.filter((conv) => conv.id !== id))
+    if (currentConversationId === id) {
+      const remaining = conversations.filter((conv) => conv.id !== id)
+      setCurrentConversationId(remaining.length > 0 ? remaining[0].id : null)
+    }
+  }
+
+  const currentConversation = conversations.find((conv) => conv.id === currentConversationId) || null
+
+  return (
+    <ConversationContext.Provider
+      value={{
+        conversations,
+        currentConversationId,
+        currentConversation,
+        createNewConversation,
+        switchConversation,
+        updateConversation,
+        deleteConversation,
+        generateTitle,
+      }}
+    >
+      {children}
+    </ConversationContext.Provider>
+  )
 }
