@@ -9,9 +9,9 @@ export async function getCompanyProfile(symbol: string) {
   return res.json();
 }
 
-// Directory
+// Earnings Transcripts
 export async function getTranscripts(symbol: string) {
-  const res = await fetch(`${FMP_BASE_URL}/earning_call_transcript/${symbol}?apikey=${FMP_API_KEY}`);
+  const res = await fetch(`${FMP_BASE_URL}/earning-call-transcript-latest/${symbol}?apikey=${FMP_API_KEY}`);
   return res.json();
 }
 
@@ -31,6 +31,11 @@ export async function getCashFlowStatement(symbol: string) {
   return res.json();
 }
 
+export async function getKeyMetrics(symbol: string) {
+  const res = await fetch(`${FMP_BASE_URL}/key-metrics/${symbol}?apikey=${FMP_API_KEY}`);
+  return res.json();
+}
+
 // Analyst
 export async function getFinancialEstimates(symbol: string, period = 'quarterly') {
   const res = await fetch(`${FMP_BASE_URL}/analyst-estimates?symbol=${symbol}&period=${period}&page=0&limit=10&apikey=${FMP_API_KEY}`);
@@ -39,6 +44,11 @@ export async function getFinancialEstimates(symbol: string, period = 'quarterly'
 
 export async function getRatingsSnapshot(symbol: string) {
   const res = await fetch(`${FMP_BASE_URL}/analyst-ratings?symbol=${symbol}&page=0&limit=10&apikey=${FMP_API_KEY}`);
+  return res.json();
+}
+
+export async function getHistoricalRatings(symbol: string) {
+  const res = await fetch(`${FMP_BASE_URL}/ratings-historical?symbol=${symbol}&apikey=${FMP_API_KEY}`);
   return res.json();
 }
 
@@ -60,3 +70,7 @@ export async function getNews(symbol: string) {
   return res.json();
 }
 
+export async function getPressReleases(symbol: string) {
+  const res = await fetch(`${FMP_BASE_URL}/press-releases-latest?page=0&limit=20&symbol=${symbol}&apikey=${FMP_API_KEY}`);
+  return res.json();
+}

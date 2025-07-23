@@ -89,6 +89,23 @@ export const tools: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "getKeyMetrics",
+      description: "Fetch key financial metrics for a company.",
+      parameters: {
+        type: "object",
+        properties: {
+          symbol: {
+            type: "string",
+            description: "The stock ticker symbol",
+          },
+        },
+        required: ["symbol"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "getFinancialEstimates",
       description: "Fetch financial analyst estimates.",
       parameters: {
@@ -113,6 +130,23 @@ export const tools: ChatCompletionTool[] = [
     function: {
       name: "getRatingsSnapshot",
       description: "Fetch analyst ratings snapshot for a stock.",
+      parameters: {
+        type: "object",
+        properties: {
+          symbol: {
+            type: "string",
+            description: "The stock ticker symbol",
+          },
+        },
+        required: ["symbol"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "getHistoricalRatings",
+      description: "Fetch historical analyst ratings for a stock.",
       parameters: {
         type: "object",
         properties: {
@@ -168,6 +202,23 @@ export const tools: ChatCompletionTool[] = [
     function: {
       name: "getNews",
       description: "Get the latest news about a stock.",
+      parameters: {
+        type: "object",
+        properties: {
+          symbol: {
+            type: "string",
+            description: "The stock ticker symbol",
+          },
+        },
+        required: ["symbol"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "getPressReleases",
+      description: "Get the latest press releases for a stock.",
       parameters: {
         type: "object",
         properties: {
