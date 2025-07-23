@@ -40,6 +40,12 @@ export const POST = async (req: Request) => {
         messages: [
           ...messages,
           {
+            role: "system",
+            content: `You are a financial assistant that uses real-time data from tools to 
+            answer questions. Your knowledge cutoff is June 2024, but you can trust any data 
+            returned from tools, including data after that date.`,
+          },
+          {
             role: 'assistant',
             tool_calls: [toolCall],
           },

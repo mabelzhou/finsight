@@ -30,6 +30,14 @@ export const tools: ChatCompletionTool[] = [
             type: "string",
             description: "The stock ticker symbol",
           },
+          year: {
+            type: "string",
+            description: "The year of the earnings call (e.g., '2025')",
+          },
+          quarter: {
+            type: "string",
+            description: "The quarter of the earnings call (e.g., '1' for Q1)",
+          },
         },
         required: ["symbol"],
       },
@@ -184,16 +192,11 @@ export const tools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "getCommoditiesQuote",
-      description: "Get the latest price quote for a commodity.",
+      description: "Get the latest price quote for commodities.",
       parameters: {
         type: "object",
-        properties: {
-          symbol: {
-            type: "string",
-            description: "The commodity symbol (e.g., GCUSD, CLUSD)",
-          },
-        },
-        required: ["symbol"],
+        properties: {},
+        required: [],
       },
     },
   },
@@ -218,16 +221,11 @@ export const tools: ChatCompletionTool[] = [
     type: "function",
     function: {
       name: "getPressReleases",
-      description: "Get the latest press releases for a stock.",
+      description: "Get the latest press releases.",
       parameters: {
         type: "object",
-        properties: {
-          symbol: {
-            type: "string",
-            description: "The stock ticker symbol",
-          },
-        },
-        required: ["symbol"],
+        properties: {},
+        required: [],
       },
     },
   },
