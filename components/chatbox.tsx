@@ -146,7 +146,10 @@ export default function Chatbox() {
           };
           const finalMessages = [...updatedMessages, errorMessage];
           updateConversation(conversationId, finalMessages);
-        } else if (error.name !== "AbortError") {
+        } else if (error.name === "AbortError") {
+          console.log("Fetch aborted by user");
+          return;
+        } else {
           console.error("Chat error:", error);
           const errorMessage: Message = {
             id: nanoid(),
