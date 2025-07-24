@@ -17,7 +17,7 @@ export async function getTranscripts(symbol: string, year = "2025", quarter = "1
 
 // Statements
 export async function getIncomeStatement(symbol: string) {
-  const res = await fetch(`${FMP_BASE_URL}/income-statement?symbol=${symbol}?apikey=${FMP_API_KEY}`);
+  const res = await fetch(`${FMP_BASE_URL}/income-statement?symbol=${symbol}&apikey=${FMP_API_KEY}`);
   return res.json();
 }
 
