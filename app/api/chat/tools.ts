@@ -1,4 +1,4 @@
-import { ChatCompletionTool } from "openai/resources/index.mjs";
+import type { ChatCompletionTool } from "openai/resources/index.mjs";
 
 export const tools: ChatCompletionTool[] = [
   {

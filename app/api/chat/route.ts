@@ -1,12 +1,32 @@
 import { OpenAI } from 'openai';
 import { functionMap } from './functionMap';
 import { tools } from './tools';
+import { redis } from '@/lib/redis';
+
+const DAILY_REQUEST_LIMIT = 20;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export const POST = async (req: Request) => {
+  const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const key = `rate_limit:${ip}`;
+
+    const requests = await redis.incr(key);
+
+    if (requests === 1) {
+      await redis.expire(key, 24 * 60 * 60); // Set expiration to 24 hours
+    }
+
+    if (requests > DAILY_REQUEST_LIMIT) {
+      return new Response(
+        JSON.stringify({ message: 'Too many requests for today. Please try again tomorrow.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+
   const { messages } = await req.json();
 
   // First, ask OpenAI to respond — it may call a function

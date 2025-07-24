@@ -100,7 +100,11 @@ export default function Chatbox() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to get response")
+        if (response.status === 429) {
+          throw new Error("rate_limit")
+        } else {
+          throw new Error("Failed to get response")
+        }
       }
 
       const reader = response.body?.getReader()
@@ -133,15 +137,25 @@ export default function Chatbox() {
 
       setStreamingMessage("")
     } catch (error) {
-      if (error instanceof Error && error.name !== "AbortError") {
-        console.error("Chat error:", error)
-        const errorMessage: Message = {
-          id: nanoid(),
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
+      if (error instanceof Error) {
+        if (error.message === "rate_limit") {
+          const errorMessage: Message = {
+            id: nanoid(),
+            role: "assistant",
+            content: "You have reached your daily request limit of 20. Thank you for trying this demo!",
+          };
+          const finalMessages = [...updatedMessages, errorMessage];
+          updateConversation(conversationId, finalMessages);
+        } else if (error.name !== "AbortError") {
+          console.error("Chat error:", error);
+          const errorMessage: Message = {
+            id: nanoid(),
+            role: "assistant",
+            content: "Sorry, I encountered an error. Please try again.",
+          };
+          const finalMessages = [...updatedMessages, errorMessage];
+          updateConversation(conversationId, finalMessages);
         }
-        const finalMessages = [...updatedMessages, errorMessage]
-        updateConversation(conversationId, finalMessages)
       }
     } finally {
       setIsLoading(false)
@@ -191,6 +205,9 @@ export default function Chatbox() {
       })
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error("rate_limit")
+        }
         throw new Error("Failed to get response")
       }
 
@@ -224,15 +241,34 @@ export default function Chatbox() {
 
       setStreamingMessage("")
     } catch (error) {
-      if (error instanceof Error && error.name !== "AbortError") {
-        console.error("Chat error:", error)
-        const errorMessage: Message = {
-          id: nanoid(),
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
+      if (error instanceof Error) {
+        console.error("Chat error:", error);
+        console.log(error.message);
+        if (error.message === "rate_limit") {
+          const errorMessage: Message = {
+            id: nanoid(),
+            role: "assistant",
+            content:
+              "You have reached your daily request limit of 20. Thank you for trying this demo!",
+          };
+          const finalMessages = [...messagesToKeep, errorMessage];
+          updateConversation(currentConversationId, finalMessages);
+          return;
         }
-        const finalMessages = [...messagesToKeep, errorMessage]
-        updateConversation(currentConversationId, finalMessages)
+        else if (error.name === "AbortError") {
+          console.log("Fetch aborted");
+          return;
+        }
+        else {
+          // Generic error handler for all other errors
+          const errorMessage: Message = {
+            id: nanoid(),
+            role: "assistant",
+            content: "Sorry, I encountered an error. Please try again.",
+          };
+          const finalMessages = [...messagesToKeep, errorMessage];
+          updateConversation(currentConversationId, finalMessages);
+        }
       }
     } finally {
       setIsLoading(false)
